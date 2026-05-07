@@ -13,8 +13,13 @@
         h1 {font-size: 50px; color:black; margin-top: 20px; margin-bottom: 10px; font-family: "Playfair Display";}
         .P {font-size: 50px; color:#5698e3; margin-top: 20px; margin-left: 10px; margin-bottom: 10px; font-family: "Playfair Display";}
         h2 {font-size: 40px; color: black; margin:10px; font-family: "ヒラギノ丸ゴシック体 W2";}
-        #wordinput {width: 500px; font-size: 20px; padding: 10px; border-radius: 10px; border: 2px solid #92aaff;}
-        .judge-button {width: 60px; font-size: 20px; padding: 10px; border-radius: 10px; border: none; background-color: #6b8cff; color: white; cursor: pointer;}
+        .word {display: flex; justify-content: center; font-size: 30px; color: black; margin: 10px; font-family: "ヒラギノ丸ゴシック体 W2";}
+        .input-area {display: flex; gap: 10px; justify-content: center;}
+        #answer {width: 30%; font-size: 20px; padding: 10px; border-radius: 10px; border: 2px solid #92aaff;}
+        .judge-button {width: 70px; font-size: 20px; padding: auto; border-radius: 10px; border: none; background-color: #6b8cff; color: white; cursor: pointer;}
+        #resultMessage {margin-left: 30%; font-size: 20px;}
+        .side-menu {position: fixed; right: 50px; top: 70px; width: 200px; height: 60%; border-radius: 10px; background-color: #a7e3e6; display: flex; flex-direction: column; align-items: center; padding-top: 20px; overflow-y: auto;}
+        .side-menu button {width: 90%; margin: 10px 0; padding: 10px; border-radius: 5px; border: none; background-color: white; cursor: pointer;}
 
     </style>
 </head>
@@ -28,8 +33,153 @@
             <h2>4級</h2>
         </div>
 
-        <input type="text" id="wordinput" placeholder="Type here" autofocus>
-        <button onclick="getword()" class="judge-button">決定</button>
+        <p id="word" class="word"></p>
+        <div class="input-area">
+            <input type="text" id="answer" autocomplete="off" placeholder="Type here" autofocus>
+            <button id="mainBtn"onclick="handleButton()" class="judge-button">next</button>
+        </div>
+        <div id="resultMessage"></div>
+
+        <div class="side-menu" id="menu">
+            <div>lesson選択</div>
+            <div></div>
+        </div>
+        
+
     </div>
 
 </body>
+
+<script>
+    let allWords = [];
+    let words = [];
+    let currentWord = 0;
+    let isAnswered = false;
+
+    fetch("words_4.json") //単語データの読み込み
+        .then(Response => Response.json())
+        .then(wordsdata => {
+            allWords = wordsdata;
+            console.log(allWords);
+            if (allWords.length > 0) {
+                selectLesson(allWords[0].lesson);
+            }
+        })
+        .catch(error => console.error("Error loading words:", error));
+
+
+    function shuffleArray(array) { //単語のシャッフル
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+
+    function selectLesson(lessonNumber) { //lesson選択
+        words = allWords.filter(word => word.lesson === String(lessonNumber));
+
+        currentWord = 0;
+        if (words.length > 0) {
+            showWord(words[currentWord]);
+        }else {
+            console.error('単語ねェよ！');
+        }
+    }
+
+
+    window.onload = () => {
+        const answerElement = document.getElementById("answer");
+
+        answerElement.addEventListener("keydown", (event) =>{ //Enterで答え合わせ
+            if (event.key === "Enter") {
+                handleButton();
+            }
+        });
+    };
+
+
+    function showWord() { //単語の表示
+    if (words.length > 0 && words[currentWord]) {
+        document.getElementById("word").textContent = words[currentWord].meaning;
+    }else {
+        console.error('wordまたはそのmeaningプロパティが未定義です');
+    }
+    }
+
+
+    function nextWord() { //次へボタン
+        currentWord++;
+        const resultMessage = document.getElementById('resultMessage');
+        resultMessage.innerText = '';
+
+        if (currentWord < words.length) {
+            showWord();
+        }else {
+            alert("You have completed all the words!");
+            currentWord = 0;
+            showWord();
+        }
+    }
+
+
+    function checkAnswer() { //答え合わせ
+        const answerInput = document.getElementById("answer");
+        const answerValue = answerInput.value;
+        const correctAnswer = words[currentWord].word;
+
+        const resultMessage = document.getElementById('resultMessage');
+        if (answerValue.trim().toLowerCase() === correctAnswer) {
+            resultMessage.innerText = '正解！';
+            resultMessage.style.color = 'green';
+
+            return true;
+        }else {
+            resultMessage.innerText = '残念！';
+            resultMessage.style.color = 'red'; 
+
+            answerInput.value = '';
+            answerInput.focus();
+
+            return false;
+        }
+
+    }
+
+
+    function handleButton() { //ボタンの切り替え
+        const mainBtn = document.getElementById("mainBtn");
+        const answerInput = document.getElementById("answer");
+        const resultMessage = document.getElementById('resultMessage');
+
+        if (isAnswered === false) {
+            const isCorrect = checkAnswer(); 
+
+            if (isCorrect === true) {
+                isAnswered = true;
+                mainBtn.textContent = "Next";
+            }
+        }else {
+            nextWord(); 
+            isAnswered = false;
+            
+            answerInput.value = "";
+            if (resultMessage) resultMessage.innerText = "";
+            mainBtn.textContent = "Check";
+            answerInput.focus();
+        }
+    }
+
+
+    const menu = document.getElementById("menu");
+
+    for (let i = 1; i <= 55; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = "Lesson " + i;
+        btn.onclick = () => selectLesson(String(i));
+        menu.appendChild(btn);
+    }
+
+
+</script>

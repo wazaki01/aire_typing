@@ -113,13 +113,13 @@
     function nextWord() { //次へボタン
         currentWord++;
         const resultMessage = document.getElementById('resultMessage');
-        resultMessage.innerText = ''; //正誤を消す
+        resultMessage.innerText = '';
 
         if (currentWord < words.length) {
             showWord();
         }else {
             alert("You have completed all the words!");
-            currentWord = 0; // 最初に戻る
+            currentWord = 0;
             showWord();
         }
     }
