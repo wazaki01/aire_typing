@@ -9,17 +9,20 @@
     <title>Pic単 5級</title>
     <link rel="icon" href="fabicon.png" type="image/png">
 
-    <style> /*CSS*/
+    <style> 
         h1 {font-size: 50px; color:black; margin-top: 20px; margin-bottom: 10px; font-family: "Playfair Display";}
         .P {font-size: 50px; color:#E1A4B3; margin-top: 20px; margin-left: 10px; margin-bottom: 10px; font-family: "Playfair Display";}
         h2 {font-size: 40px; color: black; margin:10px; font-family: "ヒラギノ丸ゴシック体 W2";}
         .word {display: flex; justify-content: center; font-size: 30px; color: black; margin: 10px; font-family: "ヒラギノ丸ゴシック体 W2";}
-        .input-area {display: flex; gap: 10px; justify-content: center;}
-        #answer {width: 30%; font-size: 20px; padding: 10px; border-radius: 10px; border: 2px solid #92aaff;}
+        .input-area {display: flex; gap: 10px; justify-content: center; align-items: center;}
+        #answer-area {display: flex; gap: 8px; justify-content: center; align-items: center;}
+        .char-input {width: 44px; height: 52px; font-size: 28px; text-align: center; border-radius: 6px; border: 2px solid #92aaff;}
+        .symbol {display: inline-flex; width: 44px; height: 52px; align-items: center; justify-content: center; font-size: 28px; color: #555;}
         .judge-button {width: 70px; font-size: 20px; padding: auto; border-radius: 10px; border: none; background-color: #6b8cff; color: white; cursor: pointer;}
         #resultMessage {margin-left: 30%; font-size: 20px;}
         .side-menu {position: fixed; right: 50px; top: 70px; width: 200px; height: 60%; border-radius: 10px; background-color: #a7e3e6; display: flex; flex-direction: column; align-items: center; padding-top: 20px; overflow-y: auto;}
         .side-menu button {width: 90%; margin: 10px 0; padding: 10px; border-radius: 5px; border: none; background-color: white; cursor: pointer;}
+        .lesson {font-size: 30px; color:black;}
 
     </style>
 </head>
@@ -33,10 +36,12 @@
             <h2>5級</h2>
         </div>
 
+        <div id="currentLesson" class="lesson"></div>
+
         <p id="word" class="word"></p>
         <div class="input-area">
-            <input type="text" id="answer" autocomplete="off" placeholder="Type here" autofocus>
-            <button id="mainBtn"onclick="handleButton()" class="judge-button">next</button>
+            <div id="answer-area"></div>
+            <button id="mainBtn" onclick="handleButton()" class="judge-button">Check</button>
         </div>
         <div id="resultMessage"></div>
 
@@ -84,40 +89,129 @@
         currentWord = 0;
         if (words.length > 0) {
             showWord(words[currentWord]);
+            document.getElementById("currentLesson").textContent = "Lesson " + lessonNumber;
         }else {
             console.error('単語ねェよ！');
         }
     }
 
 
-    window.onload = () => {
-        const answerElement = document.getElementById("answer");
+    // Enter キーは最後の入力で押されたら処理する（個別の入力要素にイベントを追加）
 
-        answerElement.addEventListener("keydown", (event) =>{ //Enterで答え合わせ
-            if (event.key === "Enter") {
-                handleButton();
+
+    function showWord() { // 単語の表示と入力欄の生成
+        if (!(words.length > 0 && words[currentWord])) {
+            console.error('wordまたはそのmeaningプロパティが未定義です');
+            return;
+        }
+
+        const meaningEl = document.getElementById("word");
+        meaningEl.textContent = words[currentWord].meaning;
+
+        const answerArea = document.getElementById('answer-area');
+        answerArea.innerHTML = '';
+
+        const correct = String(words[currentWord].word || '').toLowerCase();
+
+        // 文字ごとに入力欄または記号表示を生成
+        for (let i = 0; i < correct.length; i++) {
+            const ch = correct[i];
+
+            if (/^[a-z0-9]$/i.test(ch)) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = 1;
+                input.className = 'char-input';
+                input.autocomplete = 'off';
+
+                // 入力時：記号や不要な文字を除去して小文字化、次へ自動フォーカス
+                input.addEventListener('input', (e) => {
+                    let v = e.target.value || '';
+                    // 英数字のみを許可
+                    v = v.replace(/[^a-z0-9]/ig, '');
+                    e.target.value = v.toLowerCase();
+
+                    if (v && e.target.nextElementSibling) {
+                        // 次の要素が入力ならフォーカス
+                        const next = getNextInput(e.target);
+                        if (next) next.focus();
+                    }
+
+                    // 最後の文字が埋まったら自動で採点
+                    if (isAllFilled() && !isAnswered) {
+                        const correctFlag = checkAnswer();
+                        if (correctFlag) {
+                            isAnswered = true;
+                            document.getElementById('mainBtn').textContent = 'Next';
+                        }
+                    }
+                });
+
+                // バックスペースで前の入力へ
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value) {
+                        const prev = getPrevInput(e.target);
+                        if (prev) {
+                            prev.focus();
+                            prev.value = '';
+                            e.preventDefault();
+                        }
+                    }
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleButton();
+                    }
+                });
+
+                answerArea.appendChild(input);
+            } else {
+                // 記号は入力不可にして最初から表示
+                const span = document.createElement('span');
+                span.className = 'symbol';
+                span.textContent = ch;
+                answerArea.appendChild(span);
             }
-        });
-    };
+        }
 
-
-    function showWord() { //単語の表示
-    if (words.length > 0 && words[currentWord]) {
-        document.getElementById("word").textContent = words[currentWord].meaning;
-    }else {
-        console.error('wordまたはそのmeaningプロパティが未定義です');
-    }
+        // 最初の入力にフォーカス
+        const first = answerArea.querySelector('input');
+        if (first) first.focus();
     }
 
+    function getNextInput(el) {
+        let sib = el.nextElementSibling;
+        while (sib) {
+            if (sib.tagName === 'INPUT') return sib;
+            sib = sib.nextElementSibling;
+        }
+        return null;
+    }
 
-    function nextWord() { //次へボタン
+    function getPrevInput(el) {
+        let sib = el.previousElementSibling;
+        while (sib) {
+            if (sib.tagName === 'INPUT') return sib;
+            sib = sib.previousElementSibling;
+        }
+        return null;
+    }
+
+    function isAllFilled() {
+        const inputs = Array.from(document.getElementById('answer-area').querySelectorAll('input'));
+        return inputs.length > 0 && inputs.every(i => i.value && i.value.length > 0);
+    }
+
+
+    function nextWord() { // 次へボタン
         currentWord++;
         const resultMessage = document.getElementById('resultMessage');
         resultMessage.innerText = '';
+        isAnswered = false;
+        document.getElementById('mainBtn').textContent = 'Check';
 
         if (currentWord < words.length) {
             showWord();
-        }else {
+        } else {
             alert("You have completed all the words!");
             currentWord = 0;
             showWord();
@@ -125,50 +219,52 @@
     }
 
 
-    function checkAnswer() { //答え合わせ
-        const answerInput = document.getElementById("answer");
-        const answerValue = answerInput.value;
-        const correctAnswer = words[currentWord].word;
+    function checkAnswer() { // 答え合わせ（分割入力を結合して判定）
+        const answerArea = document.getElementById('answer-area');
+        const nodes = Array.from(answerArea.childNodes);
+        let given = '';
+        for (const n of nodes) {
+            if (n.tagName === 'INPUT') {
+                given += (n.value || '');
+            } else {
+                given += (n.textContent || '');
+            }
+        }
 
+        const correctAnswer = String(words[currentWord].word || '').toLowerCase();
         const resultMessage = document.getElementById('resultMessage');
-        if (answerValue.trim().toLowerCase() === correctAnswer) {
+
+        if (given.toLowerCase() === correctAnswer) {
             resultMessage.innerText = '正解！';
             resultMessage.style.color = 'green';
-
             return true;
-        }else {
+        } else {
             resultMessage.innerText = '残念！';
-            resultMessage.style.color = 'red'; 
+            resultMessage.style.color = 'red';
 
-            answerInput.value = '';
-            answerInput.focus();
+            // 不正解時は入力をクリアして最初にフォーカス
+            const inputs = answerArea.querySelectorAll('input');
+            inputs.forEach(i => i.value = '');
+            if (inputs[0]) inputs[0].focus();
 
             return false;
         }
-
     }
 
 
-    function handleButton() { //ボタンの切り替え
-        const mainBtn = document.getElementById("mainBtn");
-        const answerInput = document.getElementById("answer");
+    function handleButton() { // ボタンの切り替え
+        const mainBtn = document.getElementById('mainBtn');
         const resultMessage = document.getElementById('resultMessage');
 
-        if (isAnswered === false) {
-            const isCorrect = checkAnswer(); 
-
-            if (isCorrect === true) {
+        if (!isAnswered) {
+            const ok = checkAnswer();
+            if (ok) {
                 isAnswered = true;
-                mainBtn.textContent = "Next";
+                mainBtn.textContent = 'Next';
             }
-        }else {
-            nextWord(); 
-            isAnswered = false;
-            
-            answerInput.value = "";
-            if (resultMessage) resultMessage.innerText = "";
-            mainBtn.textContent = "Check";
-            answerInput.focus();
+        } else {
+            nextWord();
+            if (resultMessage) resultMessage.innerText = '';
         }
     }
 
@@ -181,6 +277,38 @@
         btn.onclick = () => selectLesson(String(i));
         menu.appendChild(btn);
     }
+
+//     const answerBox = document.getElementById("answer-area");
+//     answerBox.innerHTML = "";
+
+//     for (let i = 0; i < word.length; i++) {
+//         const input = document.createElement("input");
+    
+//         input.type = "text";
+//         input.maxLength = 1;
+//         input.classList.add("char-input");
+    
+//         // 入力後に次の入力フィールドにフォーカスを移動する
+//         input.addEventListener('input', function() {
+//             if (i < word.length - 1 && input.value) {
+//                 answerBox.children[i + 1].focus();
+//             }
+//         });
+
+//         // 最後の入力フィールドではエンターキーで完了
+//         if (i === word.length - 1) {
+//             input.addEventListener('input', function() {
+//                 if (input.value) {
+//                     // alert("完了しました！");
+//                 }
+//             });
+//         }
+        
+//         answerBox.appendChild(input);
+// }
+
+
+
 
 
 </script>

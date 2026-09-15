@@ -13,8 +13,12 @@
         h1 {font-size: 50px; color:black; margin-top: 20px; margin-bottom: 10px; font-family: "Playfair Display";}
         .P {font-size: 50px; color:#E1A4B3; margin-top: 20px; margin-left: 10px; margin-bottom: 10px; font-family: "Playfair Display";}
         h2 {font-size: 40px; color: black; margin:10px; font-family: "ヒラギノ丸ゴシック体 W2";}
-        #wordinput {width: 500px; font-size: 20px; padding: 10px; border-radius: 10px; border: 2px solid #92aaff;}
-        .judge-button {width: 60px; font-size: 20px; padding: 10px; border-radius: 10px; border: none; background-color: #6b8cff; color: white; cursor: pointer;}
+        .word {display: flex; justify-content: center; font-size: 30px; color: black; margin: 10px; font-family: "ヒラギノ丸ゴシック体 W2";}
+        .input-area {display: flex; gap: 10px; justify-content: center; align-items: center;}
+        #answer-area {display: flex; gap: 8px; justify-content: center; align-items: center;}
+        .char-input {width: 44px; height: 52px; font-size: 28px; text-align: center; border-radius: 6px; border: 2px solid #92aaff;}
+        .symbol {display: inline-flex; width: 44px; height: 52px; align-items: center; justify-content: center; font-size: 28px; color: #555;}
+        .judge-button {width: 70px; font-size: 20px; padding: auto; border-radius: 10px; border: none; background-color: #6b8cff; color: white; cursor: pointer;}
 
     </style>
 </head>
@@ -27,8 +31,223 @@
         <div>
             <h2>3級</h2>
         </div>
-        <input type="text" id="wordinput" placeholder="Type here" autofocus>
-        <button onclick="getword()" class="judge-button">決定</button>
+
+        <div id="currentLesson" class="lesson"></div>
+
+        <p id="word" class="word"></p>
+        <div class="input-area">
+            <div id="answer-area"></div>
+            <button id="mainBtn" onclick="handleButton()" class="judge-button">Check</button>
+        </div>
+        <div id="resultMessage"></div>
+    </div>
+
     </div>
 
 </body>
+
+<script>
+    let allWords = [];
+    let words = [];
+    let currentWord = 0;
+    let isAnswered = false;
+
+    fetch("words_3.json") //単語データの読み込み（3級）
+        .then(Response => Response.json())
+        .then(wordsdata => {
+            allWords = wordsdata;
+            console.log(allWords);
+            if (allWords.length > 0) {
+                selectLesson(allWords[0].lesson);
+            }
+        })
+        .catch(error => console.error("Error loading words:", error));
+
+    function shuffleArray(array) { //単語のシャッフル
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function selectLesson(lessonNumber) { //lesson選択
+        words = allWords.filter(word => word.lesson === String(lessonNumber));
+
+        currentWord = 0;
+        if (words.length > 0) {
+            showWord(words[currentWord]);
+            document.getElementById("currentLesson").textContent = "Lesson " + lessonNumber;
+        }else {
+            console.error('単語ねェよ！');
+        }
+    }
+
+    // Enter キーは個別入力で処理されます（各入力要素にイベント追加）
+
+    function showWord() { // 単語の表示と入力欄の生成
+        if (!(words.length > 0 && words[currentWord])) {
+            console.error('wordまたはそのmeaningプロパティが未定義です');
+            return;
+        }
+
+        const meaningEl = document.getElementById("word");
+        meaningEl.textContent = words[currentWord].meaning;
+
+        const answerArea = document.getElementById('answer-area');
+        answerArea.innerHTML = '';
+
+        const correct = String(words[currentWord].word || '').toLowerCase();
+
+        for (let i = 0; i < correct.length; i++) {
+            const ch = correct[i];
+            if (/^[a-z0-9]$/i.test(ch)) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = 1;
+                input.className = 'char-input';
+                input.autocomplete = 'off';
+
+                input.addEventListener('input', (e) => {
+                    let v = e.target.value || '';
+                    v = v.replace(/[^a-z0-9]/ig, '');
+                    e.target.value = v.toLowerCase();
+
+                    if (v) {
+                        const next = getNextInput(e.target);
+                        if (next) next.focus();
+                    }
+
+                    if (isAllFilled() && !isAnswered) {
+                        const correctFlag = checkAnswer();
+                        if (correctFlag) {
+                            isAnswered = true;
+                            document.getElementById('mainBtn').textContent = 'Next';
+                        }
+                    }
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value) {
+                        const prev = getPrevInput(e.target);
+                        if (prev) {
+                            prev.focus();
+                            prev.value = '';
+                            e.preventDefault();
+                        }
+                    }
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleButton();
+                    }
+                });
+
+                answerArea.appendChild(input);
+            } else {
+                const span = document.createElement('span');
+                span.className = 'symbol';
+                span.textContent = ch;
+                answerArea.appendChild(span);
+            }
+        }
+
+        const first = answerArea.querySelector('input');
+        if (first) first.focus();
+    }
+
+    function getNextInput(el) {
+        let sib = el.nextElementSibling;
+        while (sib) {
+            if (sib.tagName === 'INPUT') return sib;
+            sib = sib.nextElementSibling;
+        }
+        return null;
+    }
+
+    function getPrevInput(el) {
+        let sib = el.previousElementSibling;
+        while (sib) {
+            if (sib.tagName === 'INPUT') return sib;
+            sib = sib.previousElementSibling;
+        }
+        return null;
+    }
+
+    function isAllFilled() {
+        const inputs = Array.from(document.getElementById('answer-area').querySelectorAll('input'));
+        return inputs.length > 0 && inputs.every(i => i.value && i.value.length > 0);
+    }
+
+    function nextWord() { // 次へボタン
+        currentWord++;
+        const resultMessage = document.getElementById('resultMessage');
+        resultMessage.innerText = '';
+        isAnswered = false;
+        document.getElementById('mainBtn').textContent = 'Check';
+
+        if (currentWord < words.length) {
+            showWord();
+        } else {
+            alert("You have completed all the words!");
+            currentWord = 0;
+            showWord();
+        }
+    }
+
+    function checkAnswer() { // 答え合わせ（分割入力を結合して判定）
+        const answerArea = document.getElementById('answer-area');
+        const nodes = Array.from(answerArea.childNodes);
+        let given = '';
+        for (const n of nodes) {
+            if (n.tagName === 'INPUT') {
+                given += (n.value || '');
+            } else {
+                given += (n.textContent || '');
+            }
+        }
+
+        const correctAnswer = String(words[currentWord].word || '').toLowerCase();
+        const resultMessage = document.getElementById('resultMessage');
+
+        if (given.toLowerCase() === correctAnswer) {
+            resultMessage.innerText = '正解！';
+            resultMessage.style.color = 'green';
+            return true;
+        } else {
+            resultMessage.innerText = '残念！';
+            resultMessage.style.color = 'red';
+
+            const inputs = answerArea.querySelectorAll('input');
+            inputs.forEach(i => i.value = '');
+            if (inputs[0]) inputs[0].focus();
+
+            return false;
+        }
+    }
+
+    function handleButton() { // ボタンの切り替え
+        const mainBtn = document.getElementById('mainBtn');
+        const resultMessage = document.getElementById('resultMessage');
+
+        if (!isAnswered) {
+            const ok = checkAnswer();
+            if (ok) {
+                isAnswered = true;
+                mainBtn.textContent = 'Next';
+            }
+        } else {
+            nextWord();
+            if (resultMessage) resultMessage.innerText = '';
+        }
+    }
+
+    const menu = document.getElementById("menu");
+
+    for (let i = 1; i <= 50; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = "Lesson " + i;
+        btn.onclick = () => selectLesson(String(i));
+        menu.appendChild(btn);
+    }
+
+</script>
