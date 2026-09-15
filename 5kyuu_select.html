@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5級 - レッスン選択</title>
+    <link rel="icon" href="fabicon.png" type="image/png">
+    <style>
+        body {font-family: sans-serif; padding: 24px;}
+        h1 {font-size: 36px;}
+        /* レッスンリストを縦1列にしてスクロール可能にする */
+        .lessons {display: flex; flex-direction: column; gap: 10px; max-width: 360px; width: 100%; max-height: 70vh; overflow-y: auto; padding: 8px; border: 1px solid #eee; border-radius: 8px; margin: 0 auto;}
+        .lessons::-webkit-scrollbar {width: 10px}
+        .lessons::-webkit-scrollbar-thumb {background: #cbd7ff; border-radius: 6px}
+        .lesson-btn {padding: 14px; border-radius: 8px; background:#6b8cff; color:white; text-align:center; cursor:pointer; text-decoration:none; display:block; width:100%; box-sizing: border-box; font-size: 16px}
+        .back {margin-top:20px; display:inline-block}
+    </style>
+</head>
+
+<body>
+    <h1>5級 - レッスン選択</h1>
+
+    <div class="lessons" id="lessons"></div>
+
+    <a href="index.html" class="back">← ホームに戻る</a>
+
+    <script>
+        const container = document.getElementById('lessons');
+        // 1〜50 のレッスンボタンを作る
+        for (let i = 1; i <= 50; i++) {
+            const a = document.createElement('a');
+            a.className = 'lesson-btn';
+            a.textContent = 'Lesson ' + i;
+            // クリックで 5kyuu.html に lesson パラメータを渡す
+            a.href = '5kyuu.html?lesson=' + i;
+            container.appendChild(a);
+        }
+    </script>
+</body>
+
+</html>

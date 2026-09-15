@@ -45,10 +45,12 @@
         </div>
         <div id="resultMessage"></div>
 
+        <!--
         <div class="side-menu" id="menu">
             <div>lesson選択</div>
             <div></div>
         </div>
+        -->
         
 
     </div>
@@ -68,7 +70,14 @@
             allWords = wordsdata;
             console.log(allWords);
             if (allWords.length > 0) {
-                selectLesson(allWords[0].lesson);
+                // URL のクエリパラメータ lesson を優先して選択
+                const params = new URLSearchParams(window.location.search);
+                const lessonParam = params.get('lesson');
+                if (lessonParam) {
+                    selectLesson(String(lessonParam));
+                } else {
+                    selectLesson(allWords[0].lesson);
+                }
             }
         })
         .catch(error => console.error("Error loading words:", error));
@@ -269,6 +278,7 @@
     }
 
 
+    /*
     const menu = document.getElementById("menu");
 
     for (let i = 1; i <= 50; i++) {
@@ -277,37 +287,7 @@
         btn.onclick = () => selectLesson(String(i));
         menu.appendChild(btn);
     }
-
-//     const answerBox = document.getElementById("answer-area");
-//     answerBox.innerHTML = "";
-
-//     for (let i = 0; i < word.length; i++) {
-//         const input = document.createElement("input");
-    
-//         input.type = "text";
-//         input.maxLength = 1;
-//         input.classList.add("char-input");
-    
-//         // 入力後に次の入力フィールドにフォーカスを移動する
-//         input.addEventListener('input', function() {
-//             if (i < word.length - 1 && input.value) {
-//                 answerBox.children[i + 1].focus();
-//             }
-//         });
-
-//         // 最後の入力フィールドではエンターキーで完了
-//         if (i === word.length - 1) {
-//             input.addEventListener('input', function() {
-//                 if (input.value) {
-//                     // alert("完了しました！");
-//                 }
-//             });
-//         }
-        
-//         answerBox.appendChild(input);
-// }
-
-
+    */
 
 
 
