@@ -19,7 +19,14 @@
         .char-input {width: 44px; height: 52px; font-size: 28px; text-align: center; border-radius: 6px; border: 2px solid #92aaff;}
         .symbol {display: inline-flex; width: 44px; height: 52px; align-items: center; justify-content: center; font-size: 28px; color: #555;}
         .judge-button {width: 70px; font-size: 20px; padding: auto; border-radius: 10px; border: none; background-color: #6b8cff; color: white; cursor: pointer;}
-        #resultMessage {margin-left: 30%; font-size: 20px;}
+        /* Modal styles */
+        .modal {position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;}
+        .modal-content {background: white; padding: 20px; border-radius: 8px; min-width: 260px; text-align: center}
+        .modal-content p {font-size: 20px; margin: 12px 0}
+        .modal-content button {margin: 6px; padding: 10px 14px; border-radius: 6px; border: none; cursor: pointer}
+        .btn-retry {background:#6b8cff; color:white}
+        .btn-choose {background:#eee}
+        #resultMessage {margin-left: 40%; font-size: 30px;}
         .side-menu {position: fixed; right: 50px; top: 70px; width: 200px; height: 60%; border-radius: 10px; background-color: #a7e3e6; display: flex; flex-direction: column; align-items: center; padding-top: 20px; overflow-y: auto;}
         .side-menu button {width: 90%; margin: 10px 0; padding: 10px; border-radius: 5px; border: none; background-color: white; cursor: pointer;}
 
@@ -35,6 +42,8 @@
             <h2>4級</h2>
         </div>
 
+        <div id="currentLesson" class="lesson"></div>
+
         <p id="word" class="word"></p>
         <div class="input-area">
             <div id="answer-area"></div>
@@ -42,13 +51,23 @@
         </div>
         <div id="resultMessage"></div>
 
+        <!-- Result Modal -->
+        <div id="resultModal" class="modal" style="display:none">
+            <div class="modal-content">
+                <p id="scoreText"></p>
+                <div>
+                    <button id="retryBtn" class="btn-retry">もう1度チャレンジ</button>
+                    <button id="chooseBtn" class="btn-choose">レッスン選択へ戻る</button>
+                </div>
+            </div>
+        </div>
+
         <!--
         <div class="side-menu" id="menu">
             <div>lesson選択</div>
             <div></div>
         </div>
         -->
-        
 
     </div>
 
@@ -59,6 +78,7 @@
     let words = [];
     let currentWord = 0;
     let isAnswered = false;
+        let correctSet = new Set();
 
     fetch("words_4.json") //単語データの読み込み
         .then(Response => Response.json())
@@ -92,6 +112,7 @@
         words = allWords.filter(word => word.lesson === String(lessonNumber));
 
         currentWord = 0;
+        correctSet.clear();
         if (words.length > 0) {
             showWord(words[currentWord]);
         }else {
@@ -139,7 +160,8 @@
                     if (isAllFilled() && !isAnswered) {
                         const correctFlag = checkAnswer();
                         if (correctFlag) {
-                            isAnswered = true;
+                               isAnswered = true;
+                               correctSet.add(currentWord);
                             document.getElementById('mainBtn').textContent = 'Next';
                         }
                     }
@@ -207,12 +229,32 @@
         if (currentWord < words.length) {
             showWord();
         } else {
-            alert("You have completed all the words!");
-            currentWord = 0;
-            showWord();
+                showResultModal();
+            }
         }
-    }
 
+        function showResultModal() {
+            const modal = document.getElementById('resultModal');
+            const scoreText = document.getElementById('scoreText');
+            const total = words.length;
+            const correct = correctSet.size;
+            scoreText.textContent = `スコア: ${correct}/${total}`;
+            modal.style.display = 'flex';
+
+            document.getElementById('retryBtn').onclick = () => {
+                modal.style.display = 'none';
+                correctSet.clear();
+                currentWord = 0;
+                isAnswered = false;
+                document.getElementById('resultMessage').innerText = '';
+                document.getElementById('mainBtn').textContent = 'Check';
+                showWord();
+            };
+
+            document.getElementById('chooseBtn').onclick = () => {
+                window.location.href = '4kyuu_select.html';
+            };
+        }
 
     function checkAnswer() { // 答え合わせ（分割入力を結合して判定）
         const answerArea = document.getElementById('answer-area');
@@ -230,11 +272,11 @@
         const resultMessage = document.getElementById('resultMessage');
 
         if (given.toLowerCase() === correctAnswer) {
-            resultMessage.innerText = '正解！';
+            resultMessage.innerText = 'Correct！';
             resultMessage.style.color = 'green';
             return true;
         } else {
-            resultMessage.innerText = '残念！';
+            resultMessage.innerText = 'Try again！';
             resultMessage.style.color = 'red';
 
             const inputs = answerArea.querySelectorAll('input');
