@@ -79,6 +79,7 @@
     let currentWord = 0;
     let isAnswered = false;
         let correctSet = new Set();
+        let firstAttemptSet = new Set();
 
     fetch("words_4.json") //単語データの読み込み
         .then(Response => Response.json())
@@ -113,6 +114,7 @@
 
         currentWord = 0;
         correctSet.clear();
+        firstAttemptSet.clear();
         if (words.length > 0) {
             showWord(words[currentWord]);
         }else {
@@ -161,7 +163,6 @@
                         const correctFlag = checkAnswer();
                         if (correctFlag) {
                                isAnswered = true;
-                               correctSet.add(currentWord);
                             document.getElementById('mainBtn').textContent = 'Next';
                         }
                     }
@@ -244,6 +245,7 @@
             document.getElementById('retryBtn').onclick = () => {
                 modal.style.display = 'none';
                 correctSet.clear();
+                firstAttemptSet.clear();
                 currentWord = 0;
                 isAnswered = false;
                 document.getElementById('resultMessage').innerText = '';
@@ -270,8 +272,13 @@
 
         const correctAnswer = String(words[currentWord].word || '').toLowerCase();
         const resultMessage = document.getElementById('resultMessage');
+        const isFirstAttempt = !firstAttemptSet.has(currentWord);
+        firstAttemptSet.add(currentWord);
 
         if (given.toLowerCase() === correctAnswer) {
+            if (isFirstAttempt) {
+                correctSet.add(currentWord);
+            }
             resultMessage.innerText = 'Correct！';
             resultMessage.style.color = 'green';
             return true;
